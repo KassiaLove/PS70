@@ -1,8 +1,8 @@
 body {
     font: 20px "Gill Sans", Verdana, sans-serif;
     line-height: 1.8;
-    color: #EEE7E8;
-    background-color: #130F1D;
+    color: #0E078D;
+    background-color: #EEE7E8;
     padding-top: 0px !important;
   }
 
@@ -44,7 +44,7 @@ nav {
   border: 3px outset #0E078D;
   border-radius: 40px;
   padding: 10px 30px;
-  background-color: #0E078D;
+  background-color: #000000;
   color: #EEE7E8;
   transition: 0.3s;
 }
