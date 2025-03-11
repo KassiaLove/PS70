@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purrfectly Comfy Cat</title>
+    <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+    <div class="transition">
+        <div class="transition-row row-1">
+            <div class="block"></div>
+        </div>
+        <div class="transition-row row-2">
+            <div class="block"></div>
+        </div>
+    </div>
+    <div class="app">
+        <nav>
+            <div class="logo">
+                <a href="../../index.html">Kassia Love</a>
+            </div>
+            <div class="nav-items">
+                <a href="../../digfab.html">Digital Fabrication</a>
+                <a href="../../next.html">Research</a>
+                <a href="../../about.html">About</a>
+            </div>
+        </nav>
+
+        <div class="hero" id="dig-fab">
+            <h1>Purrfectly Comfy Cat</h1>
+        </div>
+        <div class="page-content">
+            <div class="header-img">
+                <img src="aaa.jpg" alt="">
+            </div>
+        
+            <div class="content">
+                <div class="text">
+                <h2>Motivation</h2>
+                <p>
+                    Do you ever worry about your pets while you're away from home? Concerned that the temperature might be too hot or too cold, or that a fire could break out, and you wouldn't know until it's too late?</p>
+
+<p>For this project, I wanted to create a modular environmental monitoring system that alerts pet owners when critical conditions surpass predefined thresholds. This system would send real-time notifications to the user and allow continuous monitoring of the home environment.</p>
+
+<p>I envision a temperature and smoke detection module that can be mounted on the wall, featuring a screen to display real-time temperature readings. Multiple modules could be placed throughout the home, all transmitting data to a central microcontroller-based hub. The main microcontroller would act as an interface, allowing users to check sensor readings at any time.</p>
+
+<p>All sensor data would be stored in an online database, enabling historical tracking and analysis. To notify users of dangerous conditions, the system would send text messages or mobile notifications, ensuring that pet owners stay informed about their pet's safety, no matter where they are.
+                </p>
+                </div>
+                <img src="PetTempPic_1.jpg" alt="Image of my cat in a sweater sitting on the couch.">
+
+            </div>
+
+
+
+            <div class="content">
+                <div class="text">
+                    <h2>Minimal Viable Product (MVP)</h2>
+
+                    <p>For my MVP, I will focus on:</p>
+                    <ol>
+                        <li>Understanding and integrating the necessary sensors for monitoring desired environmental conditions.</li>
+                        <li>Developing the Arduino code to process sensor data and display it on a TFT screen and an OLED screen.</li>
+                        <li>Designing and fabricating housing for both the main microcontroller and TFT screen using CAD modeling and 3D printing.</li>
+                    </ol>
+                    <br>
+                    <h3>Materials:</h3>
+                    <ul>
+                        <li>ESP32 DevKit</li>
+                        <li>BMP280 Pressure and Temperature Sensor</li>
+                        <li>MQ2 Gas Sensor</li>
+                        <li>TFT 2.4" 240x320 Screen</li>
+                        <li>0.96" OLED Screen</li>
+                        <li>Breadboard</li>
+                        <li>Lots of wires</li>
+                        <li>3D Print PLA</li>
+                    </ul>
+                    
+                </div>
+                <img src="MVP_PrintedCaseWiring.jpg" alt="Image of the MVP Electronics">
+
+            </div>
+
+            <div class="content">
+                <div class="text">
+                    <h2>Calibration of Temperature Sensor</h2>
+
+                    <p>
+                        For this project, I am using a BMP280 Pressure and Temperature Sensor, which communicates via the I2C protocol. 
+                        Wiring was straightforward, except for identifying the correct I2C address for the sensor. 
+                        By default, the sensor operates at address <code>0x76</code>, but when running an I2C scanner, the device was not detected. 
+                        To resolve this, the SDD pin needed to be pulled high to change the address to <code>0x77</code>. 
+                        After updating the code to reflect this new address, the sensor was successfully detected and functioned as expected.
+                    </p>
+                    
+                    <p>
+                        Calibrating this sensor was relatively simple. After allowing it to run for a period of time to reach equilibrium, 
+                        I compared its temperature readings to a reliable thermometer. I found that the sensor's readings had an error of <code>2.6°F</code>, 
+                        which I compensated for in the software by applying an offset.
+                    </p>
+                    
+                </div>
+                <img src="TempCalibration.jpg" alt="Image of the temperature sensor calibration process">
+            </div>
+
+            <div class="content">
+                <div class="text">
+                    <h2>Calibration of Gas Sensor</h2>
+
+                    <p>
+                        The next step was to calibrate the gas sensor. The MQ2 gas sensor requires three connections: <code>VCC</code>, <code>GND</code>, and an analog output. 
+                        According to the sensor's documentation, it needs to run for at least 24 hours upon first use to fully warm up before calibration. 
+                        After this initial burn-in period, it typically requires 5-10 minutes to warm up and stabilize its readings during normal use. 
+                    </p>
+
+                    <p>
+                        The MQ2 sensor is capable of detecting various combustible gases, including propane, methane, smoke, and carbon monoxide. 
+                        For this project, smoke detection was the primary focus. To calibrate the sensor, I conducted an experimental test setup, exposing the sensor to clean air and smoke multiple times to record its response. 
+                    </p>
+
+                    <p>
+                        During the calibration process, I introduced smoke by burning a small piece of cardboard near the sensor while logging real-time data. 
+                        The sensor readings showed a clear spike when exposed to smoke, followed by a gradual return to baseline in clean air. 
+                        After analyzing multiple test runs, I determined that a sensor reading of 1900 is a reliable threshold to distinguish between normal and smoke-filled air conditions.  
+                    </p>
+
+                    <br>
+    <div class="code-container"> <pre><code><h2>MATLAB Code</h2>
+% Define serial port and baud rate
+port = 'COM11';
+baudRate = 9600;
+
+% Open serial connection
+arduinoObj = serialport(port, baudRate);
+
+i = 1;
+while true
+    try
+        % Read line from serial
+        data(:,i) = readline(arduinoObj);
+        sensorValue = str2double(data);
+        fprintf('Sensor Value: %d\n', sensorValue(i));
+        % Wait 1 seconds before next reading
+        pause(1);
+        i = i+1;
+    catch
+        % Stop if there's an error
+        disp("Error. Check connection.");
+        break;
+    end
+end
+
+% Close serial connection
+clear arduinoObj;</code></pre>
+    </div>
+
+        <img src="GasMatlabData.png" alt="Plot of output serial data of the gas sensor with and without smoke" class="full-width"></div>
+
+
+                <img src="GasCalibration.jpg" alt="Image of the gas sensor calibration process">
+            </div>
+
+
+            <div class="content">
+                <div class="text">
+                <h2>Coding it All with Screens</h2>
+                <h3>TFT Pinout</h3>
+                
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">TFT Screen</th>
+                            <th style="width: 25%;">ESP32</th>
+                            <th style="width: 25%;">TFT Screen</th>
+                            <th style="width: 25%;">ESP32</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>T_IRQ</td><td>GPIO 36</td><td>T_OUT</td><td>GPIO 39</td></tr>
+                        <tr><td>T_DIN</td><td>GPIO 32</td><td>T_CS</td><td>GPIO 33</td></tr>
+                        <tr><td>T_CLK</td><td>GPIO 25</td><td>SDO (MISO)</td><td>GPIO 12</td></tr>
+                        <tr><td>LED</td><td>3.3V</td><td>SCK</td><td>GPIO 14</td></tr>
+                        <tr><td>SDI (MOSI)</td><td>GPIO 13</td><td>D/C</td><td>GPIO 2</td></tr>
+                        <tr><td>RESET</td><td>EN / RESET</td><td>CS</td><td>GPIO 15</td></tr>
+                        <tr><td>GND</td><td>GND</td><td>VCC</td><td>3.3V</td></tr>
+                    </tbody>
+                </table>
+                
+                <h3>OLED Pinout</h3>
+                
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">OLED Screen</th>
+                            <th style="width: 25%;">ESP32</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>GND</td><td>GND</td></tr>
+                        <tr><td>VCC</td><td>3.3V</td></tr>
+                        <tr><td>SCL</td><td>GPIO 22</td></tr>
+                        <tr><td>SDA</td><td>GPIO 21</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>BMP280 Pinout</h3>
+                
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">BMP280 Sensor</th>
+                            <th style="width: 25%;">ESP32</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>VCC</td><td>3.3V</td></tr>
+                        <tr><td>GND</td><td>GND</td></tr>
+                        <tr><td>SCL</td><td>GPIO 22</td></tr>
+                        <tr><td>SDA</td><td>GPIO 21</td></tr>
+                        <tr><td>SDD</td><td>3.3V</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>MQ2 Gas Sensor Pinout</h3>
+                
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">MQ2 Sensor</th>
+                            <th style="width: 25%;">ESP32</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>VCC</td><td>3.3V</td></tr>
+                        <tr><td>GND</td><td>GND</td></tr>
+                        <tr><td>A0</td><td>GPIO 26</td></tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Using the Arduino IDE along with the SPI, Wire, Adafruit_GFX, Adafruit_SSD1306, Adafruit_BMP280, and TFT_eSPI libraries, 
+                    I implemented object-oriented programming to structure the code efficiently. This allowed me to program the temperature 
+                    and gas sensors to collect real-time data and display the readings on both the TFT and OLED screens.
+                </p>
+
+
+                <div class="code-container"> <pre><code><h2>Arduino Code</h2>
+#include &ltSPI.h&gt
+#include &ltWire.h&gt
+#include &ltAdafruit_GFX.h&gt
+#include &ltAdafruit_SSD1306.h&gt
+#include &ltAdafruit_BMP280.h&gt
+#include "TFT_eSPI.h"
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET     -1
+#define SCREEN_ADDRESS 0x3C
+
+class GasSensor{
+    int pin;
+    int threshold;
+    unsigned long previousUpdate;
+    int interval;
+    float gasSensorVal;
+    bool newValAvailable = false;
+    
+    public:
+    GasSensor(int sensorPin, int updateInterval){
+        pin = sensorPin;
+        pinMode(pin, INPUT);
+        threshold = 1900; //above this is bad air
+        interval = updateInterval;
+        previousUpdate = 0;
+    }
+
+    void Update(){
+        if((millis() - previousUpdate) > interval){
+        previousUpdate = millis();
+        gasSensorVal = analogRead(pin);
+        newValAvailable = true;
+        }
+    }
+
+    bool newData(){
+        return newValAvailable;
+    }
+
+    float getGasVal(){
+        newValAvailable = false;
+        return gasSensorVal;
+    }
+};
+
+class TempSensor{
+    Adafruit_BMP280 bmp;
+    int error;
+    float tempSensorVal;
+    unsigned long previousUpdate;
+    int interval;
+    bool newValAvailable = false;
+
+    public:
+    TempSensor(int updateInterval, int readingError){
+        interval = updateInterval;
+        error = readingError;
+    }
+
+    void init(){
+        Wire.begin();
+        bmp.begin(0x77);
+    }
+
+    void Update(){
+        if((millis() - previousUpdate) > interval){
+        previousUpdate = millis();
+        tempSensorVal = bmp.readTemperature() * (9.0/5.0) + 32.0 - error;
+        newValAvailable = true;
+        }
+    }
+
+    bool newData(){
+        return newValAvailable;
+    }
+
+    float getTempVal(){
+        newValAvailable = false;
+        return tempSensorVal;
+    }
+};
+
+class TFTScreen{
+    TFT_eSPI tft;
+    public:
+    TFTScreen(){}
+
+    void init(){
+        tft.begin();
+        tft.setRotation(1);
+        tft.fillScreen(TFT_BLACK);
+        staticText();
+    }
+
+    void staticText(){
+        tft.setCursor(20, 20);
+        tft.setTextSize(3);
+        tft.println("Current");
+        tft.setCursor(50, 60);
+        tft.println("Temperature:");
+    }
+
+    void updateScreen(float gasSensorVal, float tempSensorVal) {
+    tft.fillRect(80, 240/2 - 20, 200, 50, TFT_BLACK);
+    tft.fillRect(80, 190, 200, 50, TFT_BLACK);
+
+    tft.setCursor(90, 240/2 - 10);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextSize(4);
+    tft.print(tempSensorVal, 2);
+    tft.print((char)247);
+    tft.println("F");
+
+    tft.setCursor(80, 200);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextSize(3);
+    if (gasSensorVal >= 1900) {
+        tft.println("Bad Air");
+    } else {
+        tft.println("Clean Air");
+    }
+    }
+};
+
+class OLEDScreen{
+    Adafruit_SSD1306 display;
+
+    public:
+    OLEDScreen() : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET) { }
+
+    void init(){
+        Wire.begin();
+        display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+        display.clearDisplay();
+    }
+
+    void updateScreen(float tempSensorVal){
+        display.clearDisplay();
+
+        display.setTextSize(3);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(0, 20);
+        display.print(tempSensorVal);
+        display.print((char)247);
+        display.println("F");
+
+        display.display();
+    }
+};
+
+GasSensor MQSensor(26, 5000);
+TempSensor BMPSensor(5000, 2.6);
+TFTScreen tftScreen;
+OLEDScreen oledScreen;
+
+void setup(){
+    Serial.begin(115200);
+    tftScreen.init();
+    BMPSensor.init();
+    oledScreen.init();
+}
+
+void loop(){
+    MQSensor.Update();
+    BMPSensor.Update();
+    if (MQSensor.newData() || BMPSensor.newData()) {
+    tftScreen.updateScreen(MQSensor.getGasVal(), BMPSensor.getTempVal());
+    oledScreen.updateScreen(BMPSensor.getTempVal());
+    }
+}
+                        </code></pre>
+                        </div>
+                </div>
+                <img src="MVP_finalPic.jpg" alt="Image of my cat in a sweater sitting on the couch.">
+
+            </div>
+
+            <div class="content">
+                <div class="text">
+                    <h2>CAD Modeling of Device Casing</h2>
+
+                    <p>
+                        The casing for the TFT screen needed to accommodate both the display and the ESP32 microcontroller. 
+                        Below and to the right is my initial design concept for this enclosure. I aimed to create a snap-fit box where the 
+                        TFT screen securely clicks into place. Through multiple test prints and measurements, I determined 
+                        that a 3.3mm diameter circular snap feature with a 0.75mm fillet allowed the screen to fit 
+                        snugly while remaining easy to install and remove. 
+                    </p>
+
+                    <p>
+                        The next step is to refine the design to ensure proper interfacing between the TFT screen, ESP32 microcontroller, 
+                        and the necessary wiring connections. This will involve optimizing the internal layout to neatly accommodate all components.
+                    </p>
+
+                    <p>
+                        In the future, I plan to modify the casing to resemble a cat's face, integrating 3D printing techniques 
+                        to achieve a multi-color print using a single extruder. The casing for the OLED screen will follow a 
+                        similar design but will also incorporate dedicated space for the sensor modules.
+                    </p>
+
+
+                    <div id="viewer-container">
+                        <div id="viewer-instructions">Click and drag to rotate</div>
+                    </div> 
+
+                    
+                </div>
+                <img src="PrintedCase.jpg" alt="">
+            </div>
+
+            
+
+            <div class="content">
+                <div class="text">
+                    <h2>Future Steps</h2>
+
+                    <p>
+                        Moving forward, the next major step is to separate the sensor modules and OLED screens from the main ESP32 microcontroller 
+                        and establish a wireless communication system using Wi-Fi. The goal is to transmit real-time sensor data to a Firebase 
+                        database, enabling remote monitoring and alerts. This will involve setting up initial internet connectivity and ensuring 
+                        reliable data transmission between multiple ESP32-based sensor nodes and the central controller.
+                    </p>
+                    
+                    <p>
+                        Another focus will be designing casings for the OLED screen and sensor modules using the ESP32 Xiao. Using the Xiao will allow the
+                        module to be small and light weight for easy wall mounting. Additionally, I plan to refine the design of all the enclosures to resemble
+                        a cat's face and experiment with 3D printing 
+                        techniques to achieve multi-color printing with a single extruder.
+                    </p>
+                    
+                    <p>
+                        Power consumption will be an important aspect to think abuot. Since the sensor modules and OLED displays may need to operate 
+                        wirelessly for extended periods, I will look into implementing low-power modes of the ESP32, where the sensor modules will wake ever so 
+                        often and send data up to the Firebase before returning to sleep, and selecting an appropriate rechargeable battery to ensure long-term
+                         operation.
+                    </p>
+
+                    <p>
+                        Finally, setting up the initial internet connection for seamless device pairing and data synchronization will be challenging. 
+                        This may include implementing a setup mode where users can configure Wi-Fi credentials via an HTML web interface hosted by the ESP32.
+                        Aesthetics of the TFT screen and this HTML web serve will be the last thing I focus on. 
+                    </p>
+                    
+                </div>
+                <img src="CatArduino.jpg" alt="Image of my cat in a sweater sitting on the couch.">
+
+            </div>
+
+            
+
+
+
+
+
+        </div>
+    </div>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="../../script.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/STLLoader.js"></script>
+
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xFFFFFF);
+
+        // Get container dimensions dynamically
+        const container = document.getElementById("viewer-container");
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        camera.position.set(0, 0, 150);
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(width, height);
+        container.appendChild(renderer.domElement);
+
+        // Lighting setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xFEFEFE, 1);
+        directionalLight.position.set(1, 1, 1).normalize();
+        scene.add(directionalLight);
+
+        let mesh; 
+
+        // Load STL Model
+        const loader = new THREE.STLLoader();
+        loader.load('Box_Lid_Top.stl', function (geometry) {
+            const material = new THREE.MeshPhongMaterial({ color: 0x666666, specular: 0x111111, shininess: 200 });
+            mesh = new THREE.Mesh(geometry, material);
+
+            // Compute bounding box
+            geometry.computeBoundingBox();
+            const bbox = geometry.boundingBox;
+            const center = new THREE.Vector3();
+            bbox.getCenter(center);
+
+            // Center the model
+            mesh.position.sub(center);
+
+            mesh.position.x += 30; 
+
+            // Rotate the model
+            mesh.rotation.x = THREE.MathUtils.degToRad(90);
+            mesh.rotation.z = THREE.MathUtils.degToRad(180 + 50);
+            mesh.rotation.x = THREE.MathUtils.degToRad(130);
+
+            scene.add(mesh);
+        });
+
+        // Orbit Controls setup
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.enableZoom = false;
+        // controls.minDistance = 10;
+        // controls.maxDistance = 500;
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Resize event listener (for dynamic resizing)
+        window.addEventListener('resize', () => {
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight;
+            camera.aspect = newWidth / newHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(newWidth, newHeight);
+        });
+
+    </script>
+    
+</body>
+</html>
